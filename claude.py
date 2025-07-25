@@ -63,5 +63,3 @@ def generate_nginx_config(image_name: str, domain_name: str, api_key: Optional[s
     except Exception as e:
         raise Exception(f"Error calling Claude API: {str(e)}")
 
-# Example usage
-

@@ -1,7 +1,9 @@
 import os
 import subprocess
+import sys
 
-def create_nginx_config(config_string, name, domain_name):
+
+def setup_nginx(config_string, name, domain_name):
     """
     Creates an nginx configuration file and enables it by linking to sites-enabled.
     
@@ -42,10 +44,6 @@ def create_nginx_config(config_string, name, domain_name):
     except Exception as e:
         print(f"Error creating nginx config: {e}")
         return False
-
-import subprocess
-import sys
-
 
 
 def run_certbot_interactive(domain=None):

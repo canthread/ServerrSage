@@ -11,6 +11,7 @@ import cloudflare
 import dotenv
 import os
 import nginx
+import claude
 
 # parse arguments and return the proceessed arguments
 def parseArguments():
@@ -28,32 +29,36 @@ def parseArguments():
 # Default server setup will setup only prowlarr, jellyfin, sonarr, radarr 
 def defaultServerSetup():
     print("Hello world")
-    defaultServices = ["prowlarr"]
+    dotenv.load_dotenv()
+    claude_api_key = os.getenv("CLUADE_API_KEY") 
+    cloudflare_api_key = os.getenv("CLOUDFLARE_API_KEY")
 
-    config = df.get_docker_compose("prowlarr") 
+    # get docker compose configuratoin for prowlarr
+    config = df.get_docker_compose("prowlarr")
 
-    newConfig = df.rewrite_volume_paths(config)
+    # rewrite the volume paths for configuration
+    newconfig = df.rewrite_volume_paths(config)
 
-    print("\n" + "="*60)
-    print("EXTRACTED DOCKER COMPOSE CONFIGURATION:")
-    print("="*60)
-    print(newconfig)
-    print("="*60)
+    # place the docker compose configuration in the appropriate directory and ensure the directories exist
+    df.ensure_docker_directories(newconfig)
 
-    df.ensure_docker_directories(newConfig)
+    # generate the nginx configuratio for prowlarr
+    # place the nginx configuration in the appropriate directory
+    nginxConfig =claude.generate_nginx_config("prowlarr", "canthread.com", claude_api_key)
+    nginx.setup_nginx(nginxConfig, "prowlarr", "canthread.com")
 
+    # run certbot to generate the SSL certificate for prowlarr
+    nginx.run_certbot_interactive()
     
-    api =""
+    # reload and restart nginx to apply the new configuration
 
-    cloudflare.create_cloudflare_subdomain("95.89.81.41" , "test" , "tekebai.com", api)
+    # setup the cloudflare subdomain for prowlarr
+    cloudflare.create_cloudflare_subdomain("95.89.81.41" , "prowlarr" , "canthread.com", cloudflare_api_key)
+
 
 
 def main():
-    dotenv.load_dotenv()
-    claude_api_key = os.getenv("CLUADE_API_KEY") 
-    print(claude_api_key)
     nginx.run_certbot_interactive()
-
 
 
     #defaultServerSetup()
