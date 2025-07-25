@@ -89,3 +89,90 @@ def run_certbot_interactive(domain=None):
         return False
 
 
+def reload_nginx():
+    """
+    Reload nginx configuration using systemctl.
+    Returns True if successful, False otherwise.
+    """
+    try:
+        result = subprocess.run(
+            ['sudo', 'systemctl', 'reload', 'nginx'],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        print("Nginx reloaded successfully")
+        return True
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to reload nginx: {e}")
+        print(f"Error output: {e.stderr}")
+        return False
+    except Exception as e:
+        print(f"Unexpected error reloading nginx: {e}")
+        return False
+
+
+def restart_nginx():
+    """
+    Restart nginx service using systemctl.
+    Returns True if successful, False otherwise.
+    """
+    try:
+        result = subprocess.run(
+            ['sudo', 'systemctl', 'restart', 'nginx'],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        print("Nginx restarted successfully")
+        return True
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to restart nginx: {e}")
+        print(f"Error output: {e.stderr}")
+        return False
+    except Exception as e:
+        print(f"Unexpected error restarting nginx: {e}")
+        return False
+
+def reload_and_restart_nginx():
+    """
+    First reload nginx, then restart it.
+    Returns True if both operations succeed, False otherwise.
+    """
+    print("Reloading nginx configuration...")
+    reload_success = reload_nginx()
+    
+    print("Restarting nginx service...")
+    restart_success = restart_nginx()
+    
+    if reload_success and restart_success:
+        print("Both reload and restart completed successfully")
+        return True
+    else:
+        print("One or both operations failed")
+        return False
+
+def check_nginx_status():
+    """
+    Check the status of nginx service.
+    Returns True if nginx is active, False otherwise.
+    """
+    try:
+        result = subprocess.run(
+            ['sudo', 'systemctl', 'is-active', 'nginx'],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        if result.stdout.strip() == 'active':
+            print("Nginx is active and running")
+            return True
+        else:
+            print(f"Nginx status: {result.stdout.strip()}")
+            return False
+    except subprocess.CalledProcessError:
+        print("Nginx is not active")
+        return False
+    except Exception as e:
+        print(f"Error checking nginx status: {e}")
+        return False
