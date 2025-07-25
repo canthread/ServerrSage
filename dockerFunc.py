@@ -427,3 +427,40 @@ def extract_host_path(volume_string):
     # If it doesn't start with path-like characters, it's probably a named volume
     return None
 
+
+def create_docker_compose_file(compose_content, image_name, filename="docker-compose.yml"):
+    """
+    Create a docker compose YAML file in ~/Docker/imagename/ directory.
+    
+    Args:
+        compose_content (str): The docker compose content as a string
+        image_name (str): The name of the image/directory to create
+        filename (str): Name of the compose file (default: docker-compose.yml)
+        
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    try:
+        # Construct the target directory path
+        home_dir = Path.home()
+        target_dir = home_dir / "Docker" / image_name
+        
+        # Create the directory if it doesn't exist
+        target_dir.mkdir(parents=True, exist_ok=True)
+        print(f"Created/verified directory: {target_dir}")
+        
+        # Full path for the compose file
+        compose_file_path = target_dir / filename
+        
+        # Write the compose content to the file
+        with open(compose_file_path, 'w', encoding='utf-8') as f:
+            f.write(compose_content)
+        
+        print(f"Successfully created {filename} in {target_dir}")
+        print(f"File location: {compose_file_path}")
+        
+        return True
+        
+    except Exception as e:
+        print(f"Error creating docker compose file: {e}")
+        return False

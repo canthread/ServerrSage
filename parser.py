@@ -51,6 +51,7 @@ def defaultServerSetup():
     nginx.run_certbot_interactive()
     
     # reload and restart nginx to apply the new configuration
+    nginx.reload_and_restart_nginx()
 
     # setup the cloudflare subdomain for prowlarr
     cloudflare.create_cloudflare_subdomain("95.89.81.41" , "prowlarr" , "canthread.com", cloudflare_api_key)
@@ -58,8 +59,15 @@ def defaultServerSetup():
 
 
 def main():
-    nginx.run_certbot_interactive()
+    config = df.get_docker_compose("prowlarr")
 
+    # rewrite the volume paths for configuration
+    newconfig = df.rewrite_volume_paths(config)
+
+    # place the docker compose configuration in the appropriate directory and ensure the directories exist
+    df.ensure_docker_directories(newconfig)
+
+    df.create_docker_compose_file(newconfig, "prowlarr")
 
     #defaultServerSetup()
 
