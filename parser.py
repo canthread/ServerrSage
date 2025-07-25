@@ -8,6 +8,9 @@ import argparse
 import urllib.parse
 import dockerFunc as df
 import cloudflare
+import dotenv
+import os
+import nginx
 
 # parse arguments and return the proceessed arguments
 def parseArguments():
@@ -21,27 +24,23 @@ def parseArguments():
 
     return parser.parse_args()
 
+
 # Default server setup will setup only prowlarr, jellyfin, sonarr, radarr 
 def defaultServerSetup():
     print("Hello world")
-    defaultServices = ["prowlarr", "jellyfin", "sonarr", "radarr"]
+    defaultServices = ["prowlarr"]
 
-    for service in defaultServices:
-        print(f"Setting up {service}...")
+    config = df.get_docker_compose("prowlarr") 
 
-        config = df.get_docker_compose(service) 
+    newConfig = df.rewrite_volume_paths(config)
 
-        newConfig = df.rewrite_volume_paths(config)
+    print("\n" + "="*60)
+    print("EXTRACTED DOCKER COMPOSE CONFIGURATION:")
+    print("="*60)
+    print(newconfig)
+    print("="*60)
 
-        jsonconfig = df.docker_compose_to_json(newConfig)
-
-        print("\n" + "="*60)
-        print("EXTRACTED DOCKER COMPOSE CONFIGURATION:")
-        print("="*60)
-        print(jsonconfig)
-        print("="*60)
-
-        df.ensure_docker_directories(newConfig)
+    df.ensure_docker_directories(newConfig)
 
     
     api =""
@@ -50,7 +49,14 @@ def defaultServerSetup():
 
 
 def main():
-    defaultServerSetup()
+    dotenv.load_dotenv()
+    claude_api_key = os.getenv("CLUADE_API_KEY") 
+    print(claude_api_key)
+    nginx.run_certbot_interactive()
+
+
+
+    #defaultServerSetup()
 
 if __name__== "__main__":
     exit(main())
