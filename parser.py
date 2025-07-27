@@ -23,11 +23,24 @@ def parseArguments():
     parser.add_argument('-i','--image', 
                        help='Image name (e.g., jellyfin, plex) or full URL', required=False)
 
+    parser.add_argument('-p', '--port',
+                        help='Port number to use for the service', required=False)
+    parser.add_argument('-d', '--domain',
+                        help='Domain name to use for the service', required=False)
+    parser.add_argument('-sd', '--subdomain',
+                        help='Subdomain name to use for the service', required=False)
+    parser.add_argument('-c', '--cloudflare',
+                        help='Cloudflare API key for managing DNS records', required=False)
+    parser.add_argument('-s', '--search',
+                        help='Search for a specific service or image', required=False,
+                        nargs='?', const='all', default=None)
+
     return parser.parse_args()
 
 
 # Default server setup will setup only prowlarr, jellyfin, sonarr, radarr 
 def defaultServerSetup():
+
     print("Hello world")
     dotenv.load_dotenv()
     claude_api_key = os.getenv("CLUADE_API_KEY") 
@@ -49,7 +62,7 @@ def defaultServerSetup():
 
     # run certbot to generate the SSL certificate for prowlarr
     nginx.run_certbot_interactive()
-    
+
     # reload and restart nginx to apply the new configuration
     nginx.reload_and_restart_nginx()
 
@@ -59,17 +72,13 @@ def defaultServerSetup():
 
 
 def main():
-    config = df.get_docker_compose("prowlarr")
 
-    # rewrite the volume paths for configuration
-    newconfig = df.rewrite_volume_paths(config)
+    args = parseArguments()
 
-    # place the docker compose configuration in the appropriate directory and ensure the directories exist
-    df.ensure_docker_directories(newconfig)
+    if args.search:
 
-    df.create_docker_compose_file(newconfig, "prowlarr")
-
-    #defaultServerSetup()
+        print("Hello im searching")
+        df.get_linuxserver_services()
 
 if __name__== "__main__":
     exit(main())

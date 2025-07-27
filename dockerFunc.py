@@ -6,6 +6,8 @@ import json
 import os
 import sys
 from pathlib import Path
+import requests
+from typing import Optional, Dict, List
 
 
 
@@ -464,3 +466,348 @@ def create_docker_compose_file(compose_content, image_name, filename="docker-com
     except Exception as e:
         print(f"Error creating docker compose file: {e}")
         return False
+
+
+
+    import subprocess
+import os
+from pathlib import Path
+
+def run_docker_compose(image_name):
+    """
+    Run docker compose up -d for a specific image in ~/Docker/imagename/ directory.
+    
+    Args:
+        image_name (str): The name of the image/directory to run
+        
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    try:
+        # Construct the path to the docker compose directory
+        home_dir = Path.home()
+        compose_dir = home_dir / "Docker" / image_name
+        
+        # Check if the directory exists
+        if not compose_dir.exists():
+            print(f"Error: Directory {compose_dir} does not exist")
+            return False
+        
+        # Check if docker-compose.yml or compose.yml exists
+        compose_files = ['docker-compose.yml', 'docker-compose.yaml', 'compose.yml', 'compose.yaml']
+        compose_file_found = False
+        
+        for compose_file in compose_files:
+            if (compose_dir / compose_file).exists():
+                compose_file_found = True
+                print(f"Found compose file: {compose_file}")
+                break
+        
+        if not compose_file_found:
+            print(f"Error: No docker compose file found in {compose_dir}")
+            print(f"Looked for: {', '.join(compose_files)}")
+            return False
+        
+        # Change to the directory and run docker compose
+        print(f"Running docker compose up -d in {compose_dir}")
+        
+        result = subprocess.run(
+            ['sudo', 'docker', 'compose', 'up', '-d'],
+            cwd=compose_dir,
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        
+        print(f"Docker compose up successful for {image_name}")
+        if result.stdout:
+            print("Output:", result.stdout)
+        
+        return True
+        
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to run docker compose for {image_name}: {e}")
+        print(f"Error output: {e.stderr}")
+        if e.stdout:
+            print(f"Standard output: {e.stdout}")
+        return False
+    except Exception as e:
+        print(f"Unexpected error running docker compose for {image_name}: {e}")
+        return False
+
+def run_docker_compose_with_options(image_name, extra_args=None):
+    """
+    Run docker compose with additional options.
+    
+    Args:
+        image_name (str): The name of the image/directory to run
+        extra_args (list): Additional arguments to pass to docker compose
+        
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    try:
+        home_dir = Path.home()
+        compose_dir = home_dir / "Docker" / image_name
+        
+        if not compose_dir.exists():
+            print(f"Error: Directory {compose_dir} does not exist")
+            return False
+        
+        # Build the command
+        cmd = ['sudo', 'docker', 'compose', 'up', '-d']
+        if extra_args:
+            cmd.extend(extra_args)
+        
+        print(f"Running command: {' '.join(cmd)} in {compose_dir}")
+        
+        result = subprocess.run(
+            cmd,
+            cwd=compose_dir,
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        
+        print(f"Docker compose up successful for {image_name}")
+        if result.stdout:
+            print("Output:", result.stdout)
+        
+        return True
+        
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to run docker compose for {image_name}: {e}")
+        print(f"Error output: {e.stderr}")
+        return False
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+        return False
+
+def stop_docker_compose(image_name):
+    """
+    Stop docker compose services for a specific image.
+    
+    Args:
+        image_name (str): The name of the image/directory to stop
+        
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    try:
+        home_dir = Path.home()
+        compose_dir = home_dir / "Docker" / image_name
+        
+        if not compose_dir.exists():
+            print(f"Error: Directory {compose_dir} does not exist")
+            return False
+        
+        print(f"Stopping docker compose services in {compose_dir}")
+        
+        result = subprocess.run(
+            ['sudo', 'docker', 'compose', 'down'],
+            cwd=compose_dir,
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        
+        print(f"Docker compose down successful for {image_name}")
+        if result.stdout:
+            print("Output:", result.stdout)
+        
+        return True
+        
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to stop docker compose for {image_name}: {e}")
+        print(f"Error output: {e.stderr}")
+        return False
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+        return False
+
+def list_available_images():
+    """
+    List all available image directories in ~/Docker/
+    
+    Returns:
+        list: List of directory names in ~/Docker/
+    """
+    try:
+        home_dir = Path.home()
+        docker_dir = home_dir / "Docker"
+        
+        if not docker_dir.exists():
+            print(f"Docker directory {docker_dir} does not exist")
+            return []
+        
+        # Get all subdirectories
+        subdirs = [d.name for d in docker_dir.iterdir() if d.is_dir()]
+        
+        if subdirs:
+            print("Available images:")
+            for subdir in subdirs:
+                print(f"  - {subdir}")
+        else:
+            print("No image directories found in ~/Docker/")
+        
+        return subdirs
+        
+    except Exception as e:
+        print(f"Error listing directories: {e}")
+        return []
+
+
+def get_linuxserver_services(include_deprecated: bool = False, include_config: bool = False, paginate: bool = True) -> None:
+    """
+    Retrieves and prints all services from LinuxServer.io API.
+    
+    Args:
+        include_deprecated (bool): Include deprecated images in the results
+        include_config (bool): Include configuration details for each image
+        paginate (bool): Use less/more for pagination (like manpages)
+    """
+    # LinuxServer.io API endpoint
+    base_url = "https://api.linuxserver.io/api/v1/images"
+    
+    # API parameters
+    params = {
+        'include_config': str(include_config).lower(),
+        'include_deprecated': str(include_deprecated).lower()
+    }
+    
+    try:
+        # Collect all output in a list if pagination is enabled
+        output_lines = []
+        
+        def print_or_collect(text=""):
+            if paginate:
+                output_lines.append(text)
+            else:
+                print(text)
+        
+        print_or_collect("🔍 Fetching LinuxServer.io services...")
+        print_or_collect("=" * 60)
+        
+        # Make API request
+        response = requests.get(base_url, params=params, timeout=30)
+        response.raise_for_status()
+        
+        # Parse JSON response
+        data = response.json()
+        
+        # Extract LinuxServer services
+        linuxserver_images = data.get('data', {}).get('repositories', {}).get('linuxserver', [])
+        
+        if not linuxserver_images:
+            print_or_collect("❌ No services found or unexpected API response format")
+            return
+        
+        print_or_collect(f"📦 Found {len(linuxserver_images)} LinuxServer.io services:")
+        print_or_collect()
+        
+        # Sort services by name for better readability
+        sorted_services = sorted(linuxserver_images, key=lambda x: x.get('name', ''))
+        
+        # Print each service
+        for i, service in enumerate(sorted_services, 1):
+            name = service.get('name', 'Unknown')
+            description = service.get('description', 'No description available')
+            category = service.get('category', 'Uncategorized')
+            version = service.get('version', 'Unknown')
+            stable = service.get('stable', False)
+            deprecated = service.get('deprecated', False)
+            stars = service.get('stars', 0)
+            monthly_pulls = service.get('monthly_pulls', 0)
+            
+            # Status indicators
+            status_indicators = []
+            if stable:
+                status_indicators.append("✅ Stable")
+            else:
+                status_indicators.append("⚠️  Unstable")
+            
+            if deprecated:
+                status_indicators.append("🚫 Deprecated")
+            
+            status = " | ".join(status_indicators)
+            
+            print_or_collect(f"{i:3d}. 📋 {name}")
+            print_or_collect(f"     📝 {description}")
+            print_or_collect(f"     🏷️  Category: {category}")
+            print_or_collect(f"     🔖 Version: {version}")
+            print_or_collect(f"     ⭐ Stars: {stars:,} | 📥 Monthly pulls: {monthly_pulls:,}")
+            print_or_collect(f"     🔍 Status: {status}")
+            
+            # Print GitHub and project URLs if available
+            github_url = service.get('github_url', '')
+            project_url = service.get('project_url', '')
+            
+            if github_url:
+                print_or_collect(f"     🔗 GitHub: {github_url}")
+            if project_url and project_url != github_url:
+                print_or_collect(f"     🌐 Project: {project_url}")
+            
+            print_or_collect()
+        
+        # If pagination is enabled, pipe output through less
+        if paginate and output_lines:
+            try:
+                # Try 'less' first (better), fallback to 'more'
+                pager = subprocess.Popen(['less', '-R'], stdin=subprocess.PIPE, text=True)
+                pager.communicate('\n'.join(output_lines))
+            except FileNotFoundError:
+                try:
+                    pager = subprocess.Popen(['more'], stdin=subprocess.PIPE, text=True)
+                    pager.communicate('\n'.join(output_lines))
+                except FileNotFoundError:
+                    # Fallback: just print normally if no pager available
+                    for line in output_lines:
+                        print(line)
+        
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Error fetching data: {e}")
+    except json.JSONDecodeError as e:
+        print(f"❌ Error parsing JSON response: {e}")
+    except KeyError as e:
+        print(f"❌ Unexpected API response format: {e}")
+    except Exception as e:
+        print(f"❌ Unexpected error: {e}")
+
+
+def search_linuxserver_service(search_term: str) -> None:
+    """
+    Search for a specific service in LinuxServer.io catalog.
+    
+    Args:
+        search_term (str): Service name to search for
+    """
+    base_url = "https://api.linuxserver.io/api/v1/images"
+    params = {'include_config': 'false', 'include_deprecated': 'true'}
+    
+    try:
+        response = requests.get(base_url, params=params, timeout=30)
+        response.raise_for_status()
+        data = response.json()
+        
+        linuxserver_images = data.get('data', {}).get('repositories', {}).get('linuxserver', [])
+        
+        # Search for matching services
+        matches = [
+            service for service in linuxserver_images 
+            if search_term.lower() in service.get('name', '').lower() or 
+               search_term.lower() in service.get('description', '').lower()
+        ]
+        
+        if matches:
+            print(f"🔍 Found {len(matches)} service(s) matching '{search_term}':\n")
+            for service in matches:
+                name = service.get('name', 'Unknown')
+                description = service.get('description', 'No description available')
+                print(f"📋 {name}")
+                print(f"   {description}\n")
+        else:
+            print(f"❌ No services found matching '{search_term}'")
+            
+    except Exception as e:
+        print(f"❌ Error searching services: {e}")
+
