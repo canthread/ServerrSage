@@ -19,13 +19,16 @@ def parseArguments():
     parser = argparse.ArgumentParser(
             description='A simple parser for command line arguments',
             formatter_class=argparse.RawDescriptionHelpFormatter,)
+    parser.add_argument('-ii', '--install_image', 
+                        help='Install a docker image from the linuxserver.io repository requires --image or -i to function',
+                        required=False, action='store_true')
 
     parser.add_argument('-i','--image', 
                        help='Image name (e.g., jellyfin, plex) or full URL', required=False)
 
     parser.add_argument('-p', '--port',
                         help='Port number to use for the service', required=False)
-    parser.add_argument('-d', '--domain',
+    parser.add_argument('-d', '--domain_name',
                         help='Domain name to use for the service', required=False)
     parser.add_argument('-sd', '--subdomain',
                         help='Subdomain name to use for the service', required=False)
@@ -41,6 +44,7 @@ def parseArguments():
     parser.add_argument('-ip', '--ipaddress', 
                         help='IP address to use for the service, required for Cloudflare DNS setup',
                         required=False)
+
 
     return parser.parse_args()
 
@@ -74,7 +78,27 @@ def defaultServerSetup():
     cloudflare.create_cloudflare_subdomain("95.89.81.41" , "prowlarr" , "canthread.com", cloudflare_api_key)
 
 
-def setupService(image, port, domain, subdomain):
+def install_docker_image(image_name, domain_name):
+    # create the docker compose 
+    docker_compose_yml = df.get_docker_compose(image_name) 
+    docker_compose_yml = df.rewrite_volume_paths(docker_compose_yml)
+
+    # write the compose file to appropriate location
+    df.ensure_docker_directories(docker_compose_yml)
+
+    #generate nginx cofig 
+    nginx_config = claude.generate_nginx_config(image_name, domain_name)
+
+    #place in /etc/nginx/sites-available/
+    # ln -s to /etc/nginx/sites-enabled/
+    nginx.setup_nginx(nginx_config, image_name, domain_name)
+
+    nginx.run_certbot_interactive()
+
+    nginx.reload_and_restart_nginx()
+
+
+def setupService(image, domain, subdomain):
     config = df.get_docker_compose(image)
     
     # volue paths 
@@ -96,7 +120,14 @@ def main():
     dotenv.load_dotenv()
     claude_api_key = os.getenv("CLUADE_API_KEY") 
     cloudflare_api_key = os.getenv("CLOUDFLARE_API_KEY")
-
+    
+    if args.install_image:
+        if args.image and args.domain_name:
+            image_name = args.image
+            df.install_docker_image(image_name, domain_name)
+        else:
+            print("Image name is required for installation")
+            exit(1)
 
     if args.search:
         df.get_linuxserver_services()
@@ -111,7 +142,7 @@ def main():
             exit(1)
 
     if args.cloudflare_dns:
-        if args.image and args.domain and args.ipaddress:
+        if args.image and args.domain_name and args.ipaddress:
             image_name = args.image
             domain_name = args.domain
             ipaddress = args.ipaddress
