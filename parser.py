@@ -106,6 +106,8 @@ def setup_cloudflare(ip_address, image_name, domain_name, cloudflare_api_key, cl
     #generate nginx cofig 
     nginx_config = claude.generate_nginx_config(image_name, domain_name, claude_api_key)
 
+    print("Nginx Configuration: \n", nginx_config)
+
     #place in /etc/nginx/sites-available/
     # ln -s to /etc/nginx/sites-enabled/
     nginx.setup_nginx(nginx_config, image_name, domain_name)
