@@ -29,11 +29,18 @@ def parseArguments():
                         help='Domain name to use for the service', required=False)
     parser.add_argument('-sd', '--subdomain',
                         help='Subdomain name to use for the service', required=False)
-    parser.add_argument('-c', '--cloudflare',
+    parser.add_argument('-ca', '--cloudflare_api',
                         help='Cloudflare API key for managing DNS records', required=False)
     parser.add_argument('-s', '--search',
                         help='Search for a specific service or image', required=False,
                         nargs='?', const='all', default=None)
+    parser.add_argument('-cd', '--cloudflare_dns', 
+                        help='Setup Cloudflare DNS for a service, requires --image and --domain and --ipaddress to work',
+                        required=False,
+                        action='store_true')
+    parser.add_argument('-ip', '--ipaddress', 
+                        help='IP address to use for the service, required for Cloudflare DNS setup',
+                        required=False)
 
     return parser.parse_args()
 
@@ -42,10 +49,7 @@ def parseArguments():
 def defaultServerSetup():
 
     print("Hello world")
-    dotenv.load_dotenv()
-    claude_api_key = os.getenv("CLUADE_API_KEY") 
-    cloudflare_api_key = os.getenv("CLOUDFLARE_API_KEY")
-
+    
     # get docker compose configuratoin for prowlarr
     config = df.get_docker_compose("prowlarr")
 
@@ -70,15 +74,53 @@ def defaultServerSetup():
     cloudflare.create_cloudflare_subdomain("95.89.81.41" , "prowlarr" , "canthread.com", cloudflare_api_key)
 
 
+def setupService(image, port, domain, subdomain):
+    config = df.get_docker_compose(image)
+    
+    # volue paths 
+    config = df.rewrite_volume_paths(config)
+
+    #setup nginx configurration
+    nginxConfig = claude.generate_nginx_config(image, domain_name)
+
+    nginx.setup_nginx(nginxConfig, image, domain)
+
+    nginx.run_certbot_interactive()
+
+    nginx.reload_and_restart_nginx()
+
 
 def main():
 
     args = parseArguments()
+    dotenv.load_dotenv()
+    claude_api_key = os.getenv("CLUADE_API_KEY") 
+    cloudflare_api_key = os.getenv("CLOUDFLARE_API_KEY")
+
 
     if args.search:
-
-        print("Hello im searching")
         df.get_linuxserver_services()
+
+    if args.subdomain:
+        subdomain = args.subdomain
+        if args.domain:
+            domain = args.domain
+            cloudflare.create_cloudflare_subdomain(ipaddress, image_name, domain_name)
+        else:
+            print("Domain name is required for subdomain setup")
+            exit(1)
+
+    if args.cloudflare_dns:
+        if args.image and args.domain and args.ipaddress:
+            image_name = args.image
+            domain_name = args.domain
+            ipaddress = args.ipaddress
+            cloudflare.create_cloudflare_subdomain(ipaddress, image_name, domain_name, cloudflare_api_key)
+        else:
+            print("Image name, domain name, and IP address are required for Cloudflare DNS setup")
+            exit(1)
+        # cloudflare.create_cloudflare_subdomain("95.89.81.41" , "prowlarr" , domain, cloudflare_api_key)
+        #
 
 if __name__== "__main__":
     exit(main())
