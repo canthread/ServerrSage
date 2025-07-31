@@ -78,7 +78,7 @@ def defaultServerSetup():
     cloudflare.create_cloudflare_subdomain("95.89.81.41" , "prowlarr" , "canthread.com", cloudflare_api_key)
 
 
-def install_docker_image(image_name, domain_name):
+def setup_docker_service(image_name, domain_name):
     # create the docker compose 
     docker_compose_yml = df.get_docker_compose(image_name) 
     docker_compose_yml = df.rewrite_volume_paths(docker_compose_yml)
@@ -122,9 +122,11 @@ def main():
     cloudflare_api_key = os.getenv("CLOUDFLARE_API_KEY")
     
     if args.install_image:
+
         if args.image and args.domain_name:
             image_name = args.image
-            df.install_docker_image(image_name, domain_name)
+            setup_docker_service(image_name, domain_name)
+
         else:
             print("Image name is required for installation")
             exit(1)
