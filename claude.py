@@ -22,7 +22,7 @@ def generate_nginx_config(image_name: str, domain_name: str, api_key: Optional[s
         client = anthropic.Anthropic()
     
     # Construct the prompt with domain name
-    prompt = f'nginx "{image_name}" http reverse proxy for domain"{image_name}"."{domain_name}"'
+    prompt = f'nginx "{image_name}" http reverse proxy for domain"{image_name}"."{domain_name}" only http no ssl no certificates. just the http. certificates will be manages by other service. '
     
     try:
         # Make the API call
