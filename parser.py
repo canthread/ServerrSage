@@ -125,6 +125,7 @@ def main():
 
         if args.image and args.domain_name:
             image_name = args.image
+            domain_name = args.domain_name
             setup_docker_service(image_name, domain_name)
 
         else:
