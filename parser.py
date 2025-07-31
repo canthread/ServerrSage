@@ -93,6 +93,7 @@ def setup_docker_service(image_name, domain_name, claude_api_key):
 
     # write the compose file to appropriate location
     df.ensure_docker_directories(docker_compose_yml)
+    df.create_docker_compose_file(docker_compose_yml, image_name)
 
     df.run_docker_compose(image_name)   
 
