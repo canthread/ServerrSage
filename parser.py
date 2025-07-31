@@ -89,6 +89,8 @@ def setup_docker_service(image_name, domain_name, claude_api_key):
     docker_compose_yml = df.get_docker_compose(image_name) 
     docker_compose_yml = df.rewrite_volume_paths(docker_compose_yml)
 
+    print("Docker Compose Configuration: \n", docker_compose_yml)
+
     # write the compose file to appropriate location
     df.ensure_docker_directories(docker_compose_yml)
 
