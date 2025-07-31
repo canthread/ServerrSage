@@ -87,7 +87,7 @@ def setup_docker_service(image_name, domain_name, claude_api_key):
     df.ensure_docker_directories(docker_compose_yml)
 
     #generate nginx cofig 
-    nginx_config = claude.generate_nginx_config(image_name, domain_name)
+    nginx_config = claude.generate_nginx_config(image_name, domain_name, claude_api_key)
 
     #place in /etc/nginx/sites-available/
     # ln -s to /etc/nginx/sites-enabled/
@@ -120,6 +120,8 @@ def main():
     dotenv.load_dotenv()
     claude_api_key = os.getenv("CLUADE_API_KEY") 
     cloudflare_api_key = os.getenv("CLOUDFLARE_API_KEY")
+
+    print("Claude API Key: ", claude_api_key)
     
     if args.install_image:
 
