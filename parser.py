@@ -98,7 +98,7 @@ def setup_docker_service(image_name, domain_name, claude_api_key):
     df.run_docker_compose(image_name)   
 
     
-def setup_cloudflare(ip_address, image_name, domain_name, cloudflare_api_key):
+def setup_cloudflare(ip_address, image_name, domain_name, cloudflare_api_key, claude_api_key):
 
     # create the cloudflare subdomain for the service
     cloudflare.create_cloudflare_subdomain(ip_address, image_name, domain_name)
@@ -158,7 +158,7 @@ def main():
             image_name = args.image
             domain_name = args.domain_name
             ipaddress = args.ipaddress
-            setup_cloudflare(ipaddress, image_name, domain_name, cloudflare_api_key)
+            setup_cloudflare(ipaddress, image_name, domain_name, cloudflare_api_key, claude_api_key)
         else:
             print("Image name, domain name, and IP address are required for Cloudflare DNS setup")
             exit(1)
