@@ -101,7 +101,7 @@ def setup_docker_service(image_name, domain_name, claude_api_key):
 def setup_cloudflare(ip_address, image_name, domain_name, cloudflare_api_key, claude_api_key):
 
     # create the cloudflare subdomain for the service
-    cloudflare.create_cloudflare_subdomain(ip_address, image_name, domain_name)
+    cloudflare.create_cloudflare_subdomain(ip_address, image_name, domain_name, cloudflare_api_key)
 
     #generate nginx cofig 
     nginx_config = claude.generate_nginx_config(image_name, domain_name, claude_api_key)
@@ -116,7 +116,6 @@ def setup_cloudflare(ip_address, image_name, domain_name, cloudflare_api_key, cl
 
 
 def main():
-
     args = parseArguments()
     dotenv.load_dotenv()
     claude_api_key = os.getenv("CLUADE_API_KEY") 
@@ -125,9 +124,10 @@ def main():
     print("Claude API Key: ", claude_api_key)
 
     if args.test:
-        #test nginx configuration
-        nginxconfig = claude.generate_nginx_config("prowlarr", "canthread.com", claude_api_key)
-        print("Generated Nginx Config: \n", nginxconfig)
+        ipaddress = "95.89.81.41"
+        image_name = "prowlarr"
+        domain_name = "canthread.com"
+        setup_cloudflare(ipaddress, image_name, domain_name, cloudflare_api_key, claude_api_key)
 
     
     if args.install_image:
