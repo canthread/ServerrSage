@@ -156,7 +156,7 @@ def main():
     if args.cloudflare_dns:
         if args.image and args.domain_name and args.ipaddress:
             image_name = args.image
-            domain_name = args.domain
+            domain_name = args.domain_name
             ipaddress = args.ipaddress
             setup_cloudflare(ipaddress, image_name, domain_name, cloudflare_api_key)
         else:
