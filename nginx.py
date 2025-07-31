@@ -2,49 +2,108 @@ import os
 import subprocess
 import sys
 
+def run_with_sudo(command):
+    """Run a command with sudo, handling the case where sudo might prompt for password"""
+    try:
+        # First try without password prompt
+        result = subprocess.run(["sudo", "-n"] + command, 
+                              capture_output=True, text=True, timeout=5)
+        if result.returncode == 0:
+            return result
+        
+        # If that fails, try with password prompt
+        print("Sudo privileges required. You may be prompted for your password.")
+        result = subprocess.run(["sudo"] + command, 
+                              capture_output=True, text=True)
+        return result
+        
+    except subprocess.TimeoutExpired:
+        print("Sudo command timed out")
+        return None
+    except Exception as e:
+        print(f"Error running sudo command: {e}")
+        return None
 
 def setup_nginx(config_string, name, domain_name):
-    """
-    Creates an nginx configuration file and enables it by linking to sites-enabled.
-    
-    Args:
-        config_string (str): The nginx configuration content
-        name (str): The name part of the filename
-        domain_name (str): The domain name part of the filename
-    
-    Returns:
-        bool: True if successful, False otherwise
-    """
+    """Your modified function using run_with_sudo"""
     try:
-        # Create filename pattern: name.domainname
         filename = f"{name}.{domain_name}"
-        
-        # Define paths
         sites_available_path = f"/etc/nginx/sites-available/{filename}"
         sites_enabled_path = f"/etc/nginx/sites-enabled/{filename}"
         
-        # Write the config file to sites-available
-        with open(sites_available_path, 'w') as f:
+        # Write to temp file
+        temp_config_path = f"/tmp/{filename}.nginx.conf"
+        with open(temp_config_path, 'w') as f:
             f.write(config_string)
+        
+        # Copy with sudo
+        result = run_with_sudo(["cp", temp_config_path, sites_available_path])
+        if not result or result.returncode != 0:
+            print(f"Failed to copy config file: {result.stderr if result else 'Unknown error'}")
+            return False
         
         print(f"Created config file: {sites_available_path}")
         
-        # Create symbolic link to sites-enabled
+        # Create symlink if it doesn't exist
         if not os.path.exists(sites_enabled_path):
-            os.symlink(sites_available_path, sites_enabled_path)
+            result = run_with_sudo(["ln", "-s", sites_available_path, sites_enabled_path])
+            if not result or result.returncode != 0:
+                print(f"Failed to create symlink: {result.stderr if result else 'Unknown error'}")
+                return False
             print(f"Enabled site by linking to: {sites_enabled_path}")
         else:
             print(f"Site already enabled: {sites_enabled_path}")
         
+        # Clean up
+        os.remove(temp_config_path)
         return True
         
-    except PermissionError:
-        print("Error: Permission denied. Run with sudo or as root.")
-        return False
     except Exception as e:
         print(f"Error creating nginx config: {e}")
         return False
 
+# def setup_nginx(config_string, name, domain_name):
+#     """
+#     Creates an nginx configuration file and enables it by linking to sites-enabled.
+#
+#     Args:
+#         config_string (str): The nginx configuration content
+#         name (str): The name part of the filename
+#         domain_name (str): The domain name part of the filename
+#
+#     Returns:
+#         bool: True if successful, False otherwise
+#     """
+#     try:
+#         # Create filename pattern: name.domainname
+#         filename = f"{name}.{domain_name}"
+#
+#         # Define paths
+#         sites_available_path = f"/etc/nginx/sites-available/{filename}"
+#         sites_enabled_path = f"/etc/nginx/sites-enabled/{filename}"
+#
+#         # Write the config file to sites-available
+#         with open(sites_available_path, 'w') as f:
+#             f.write(config_string)
+#
+#         print(f"Created config file: {sites_available_path}")
+#
+#         # Create symbolic link to sites-enabled
+#         if not os.path.exists(sites_enabled_path):
+#             os.symlink(sites_available_path, sites_enabled_path)
+#             print(f"Enabled site by linking to: {sites_enabled_path}")
+#         else:
+#             print(f"Site already enabled: {sites_enabled_path}")
+#
+#         return True
+#
+#     except PermissionError:
+#         print("Error: Permission denied. Run with sudo or as root.")
+#         return False
+#     except Exception as e:
+#         print(f"Error creating nginx config: {e}")
+#         return False
+#
 
 def run_certbot_interactive(domain=None):
     """

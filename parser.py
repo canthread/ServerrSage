@@ -41,6 +41,12 @@ def parseArguments():
                         help='Setup Cloudflare DNS for a service, requires --image and --domain and --ipaddress to work',
                         required=False,
                         action='store_true')
+
+    parser.add_argument('-t', '--test',
+                        help='Test the setup by running a specific command',
+                        required=False,
+                        action='store_true')
+
     parser.add_argument('-ip', '--ipaddress', 
                         help='IP address to use for the service, required for Cloudflare DNS setup',
                         required=False)
@@ -86,6 +92,14 @@ def setup_docker_service(image_name, domain_name, claude_api_key):
     # write the compose file to appropriate location
     df.ensure_docker_directories(docker_compose_yml)
 
+    df.run_docker_compose(image_name)   
+
+    
+def setup_cloudflare(ip_address, image_name, domain_name, cloudflare_api_key):
+
+    # create the cloudflare subdomain for the service
+    cloudflare.create_cloudflare_subdomain(ip_address, image_name, domain_name)
+
     #generate nginx cofig 
     nginx_config = claude.generate_nginx_config(image_name, domain_name, claude_api_key)
 
@@ -93,25 +107,9 @@ def setup_docker_service(image_name, domain_name, claude_api_key):
     # ln -s to /etc/nginx/sites-enabled/
     nginx.setup_nginx(nginx_config, image_name, domain_name)
 
-    nginx.run_certbot_interactive()
-
     nginx.reload_and_restart_nginx()
 
-
-def setupService(image, domain, subdomain):
-    config = df.get_docker_compose(image)
-    
-    # volue paths 
-    config = df.rewrite_volume_paths(config)
-
-    #setup nginx configurration
-    nginxConfig = claude.generate_nginx_config(image, domain_name)
-
-    nginx.setup_nginx(nginxConfig, image, domain)
-
     nginx.run_certbot_interactive()
-
-    nginx.reload_and_restart_nginx()
 
 
 def main():
@@ -122,6 +120,12 @@ def main():
     cloudflare_api_key = os.getenv("CLOUDFLARE_API_KEY")
 
     print("Claude API Key: ", claude_api_key)
+
+    if args.test:
+        #test nginx configuration
+        nginxconfig = claude.generate_nginx_config("prowlarr", "canthread.com", claude_api_key)
+        print("Generated Nginx Config: \n", nginxconfig)
+
     
     if args.install_image:
 
@@ -151,7 +155,7 @@ def main():
             image_name = args.image
             domain_name = args.domain
             ipaddress = args.ipaddress
-            cloudflare.create_cloudflare_subdomain(ipaddress, image_name, domain_name, cloudflare_api_key)
+            setup_cloudflare(ipaddress, image_name, domain_name, cloudflare_api_key)
         else:
             print("Image name, domain name, and IP address are required for Cloudflare DNS setup")
             exit(1)
